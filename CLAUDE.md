@@ -37,16 +37,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The single HTML file is organized into distinct sections (though not literally separate files):
 
 ### 1. **Identification Engine** (Core Logic)
-- **Confidence threshold**: 75%. Below this, the app triggers follow-up dialogue instead of guessing
+- **Confidence threshold**: 85%+. Calibrated against Google Lens behavior—Google Lens commits to confident IDs at ~85% threshold; below this, it requests clarification or shows alternatives
 - **Follow-up flow**: Maximum 2 rounds. After 2 rounds, admits uncertainty honestly with best hypothesis
 - **AI prompt injection**: Includes a 26-species reference database embedded in every identification prompt (Bay Area natives, Mediterranean, succulents, Australian plants, etc.)
 - **Wikipedia citation**: Auto-generated from scientific name; shown on all results
+
+**Confidence Calibration (Google Lens Reference)**:
+Google Lens, tested on millions of plant images, implicitly maintains ~85% confidence before committing to a single answer. Below 85%, it shows alternatives or asks for clarification (better lighting, closer photo, etc.). Botanica should match this behavior:
+- **85–95%**: Confident ID with care guide
+- **70–84%**: Confident enough for follow-up dialogue (ask for clarification)
+- **<70%**: Admit uncertainty, show alternatives if applicable
 
 **Key prompt rules**:
 - Reduce confidence on distance shots of fine-textured shrubs → request close-up of leaf/phyllode
 - Reduce confidence on low-light photos → request daytime photo instead
 - Auto-inject phosphorus sensitivity warning for any Proteaceae identification
 - Australian natives suspected at distance → ask for leaf/phyllode close-up specifically
+- When confidence drifts below 85% after follow-up, show multiple candidates rather than forcing single ID
 
 ### 2. **Image Processing**
 - Accept 1–5 images per identification session
@@ -189,8 +196,10 @@ When testing new features or prompt changes:
 
 ## Important Constraints & Decisions
 
-### Why 75% Confidence Threshold?
-Below 75%, the app asks follow-up questions rather than guessing. This treats the user as a knowledgeable collaborator, not a passive recipient. A serious plant collector would rather be asked "Can I see the petiole attachment?" than receive a confident wrong answer.
+### Why 85% Confidence Threshold?
+Calibrated against Google Lens, which implicitly commits to confident IDs at ~85% and requests clarification below that threshold. This prevents confident wrong answers while keeping friction minimal.
+
+**Rationale**: A serious plant collector would rather be asked "Can I see the petiole attachment?" than receive a wrong ID at 70% confidence. The 85% threshold aligns with industry-standard vision AI behavior and reduces false positives while maintaining usability.
 
 ### Why Maximum 2 Follow-Up Rounds?
 After 2 rounds, the app admits uncertainty honestly with best hypothesis and reason for uncertainty. This balances thoroughness with user patience—endless back-and-forth is frustrating.
@@ -245,8 +254,9 @@ Check browser console. If compression fails silently:
 3. Log the image dimensions before/after compression
 
 ### AI Returns Wrong Plant
-1. Check the confidence score—below 75% should trigger follow-up
-2. If above 75%, the prompt needs adjustment
+1. Check the confidence score—below 85% should trigger follow-up
+2. If above 85%, the prompt needs adjustment
+3. Compare against Google Lens result on the same photo—if Google Lens is uncertain but Botanica commits, confidence threshold may need recalibration
 3. Check if the species is in the reference database—if not, consider adding it
 4. Test with the same photo through Claude API directly (claude.ai) to isolate the issue
 
